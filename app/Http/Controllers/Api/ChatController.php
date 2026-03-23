@@ -2,48 +2,132 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Ai\Agents\ChatBot;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Requests\SendMessageRequest;
+use App\Http\Requests\StoreConversationRequest;
+use App\Http\Resources\ConversationResource;
+use App\Http\Resources\MessageResource;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\DB;
+use Laravel\Ai\Contracts\ConversationStore;
 
 class ChatController extends Controller
 {
+    public function __construct(
+        private ConversationStore $conversationStore,
+    ) {}
+
     /**
-     * Display a listing of the resource.
+     * List all conversations, newest first.
      */
-    public function index()
+    public function index(): AnonymousResourceCollection
     {
-        //
+        $conversations = DB::table('agent_conversations')
+            ->orderByDesc('updated_at')
+            ->paginate(15);
+
+        return ConversationResource::collection($conversations);
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Create a new conversation.
      */
-    public function store(Request $request)
+    public function store(StoreConversationRequest $request): ConversationResource
     {
-        //
+        $conversationId = $this->conversationStore->storeConversation(
+            userId: null,
+            title: $request->validated('title') ?? 'New Conversation',
+        );
+
+        $conversation = DB::table('agent_conversations')
+            ->where('id', $conversationId)
+            ->first();
+
+        return new ConversationResource($conversation);
     }
 
     /**
-     * Display the specified resource.
+     * Show a conversation with its messages.
      */
-    public function show(string $id)
+    public function show(string $conversationId): JsonResponse
     {
-        //
+        $conversation = DB::table('agent_conversations')
+            ->where('id', $conversationId)
+            ->first();
+
+        if (! $conversation) {
+            abort(404, 'Conversation not found.');
+        }
+
+        $messages = DB::table('agent_conversation_messages')
+            ->where('conversation_id', $conversationId)
+            ->orderBy('created_at')
+            ->get();
+
+        return response()->json([
+            'data' => [
+                ...(new ConversationResource($conversation))->toArray(request()),
+                'messages' => MessageResource::collection($messages),
+            ],
+        ]);
     }
 
     /**
-     * Update the specified resource in storage.
+     * Delete a conversation and its messages.
      */
-    public function update(Request $request, string $id)
+    public function destroy(string $conversationId): JsonResponse
     {
-        //
+        $deleted = DB::table('agent_conversations')
+            ->where('id', $conversationId)
+            ->delete();
+
+        if (! $deleted) {
+            abort(404, 'Conversation not found.');
+        }
+
+        DB::table('agent_conversation_messages')
+            ->where('conversation_id', $conversationId)
+            ->delete();
+
+        return response()->json(null, 204);
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Send a message to a conversation and get the AI response.
      */
-    public function destroy(string $id)
+    public function sendMessage(SendMessageRequest $request, string $conversationId): JsonResponse
     {
-        //
+        $conversation = DB::table('agent_conversations')
+            ->where('id', $conversationId)
+            ->first();
+
+        if (! $conversation) {
+            abort(404, 'Conversation not found.');
+        }
+
+        $agent = new ChatBot;
+
+        $response = $agent
+            ->continue($conversationId, as: (object) ['id' => $conversation->user_id])
+            ->prompt($request->validated('message'));
+
+        $assistantMessage = DB::table('agent_conversation_messages')
+            ->where('conversation_id', $conversationId)
+            ->where('role', 'assistant')
+            ->orderByDesc('created_at')
+            ->first();
+
+        return response()->json([
+            'data' => [
+                'conversation_id' => $conversationId,
+                'response' => (string) $response,
+                'message' => $assistantMessage
+                    ? (new MessageResource($assistantMessage))->toArray(request())
+                    : null,
+                'usage' => $response->usage->toArray(),
+            ],
+        ]);
     }
 }

@@ -978,11 +978,6 @@ Groq has rate limits (~30 requests/minute on free tier). The app handles this:
 ### Code Formatting
 
 Always run before committing:
-AI_PROVIDERgroq
-"GROQ_
-GEMINI_
-API_KEY
-"
 ```bash
 vendor/bin/pint --dirty
 

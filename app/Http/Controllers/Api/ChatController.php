@@ -25,6 +25,7 @@ class ChatController extends Controller
     public function index(): AnonymousResourceCollection
     {
         $conversations = DB::table('agent_conversations')
+            ->select('id', 'title', 'user_id', 'created_at', 'updated_at')
             ->orderByDesc('updated_at')
             ->paginate(15);
 
@@ -42,6 +43,7 @@ class ChatController extends Controller
         );
 
         $conversation = DB::table('agent_conversations')
+            ->select('id', 'title', 'user_id', 'created_at', 'updated_at')
             ->where('id', $conversationId)
             ->first();
 
@@ -54,6 +56,7 @@ class ChatController extends Controller
     public function show(string $conversationId): JsonResponse
     {
         $conversation = DB::table('agent_conversations')
+            ->select('id', 'title', 'user_id', 'created_at', 'updated_at')
             ->where('id', $conversationId)
             ->first();
 
@@ -62,6 +65,7 @@ class ChatController extends Controller
         }
 
         $messages = DB::table('agent_conversation_messages')
+            ->select('id', 'conversation_id', 'role', 'content', 'usage', 'created_at')
             ->where('conversation_id', $conversationId)
             ->orderBy('created_at')
             ->get();
@@ -79,16 +83,20 @@ class ChatController extends Controller
      */
     public function destroy(string $conversationId): JsonResponse
     {
-        $deleted = DB::table('agent_conversations')
+        $exists = DB::table('agent_conversations')
             ->where('id', $conversationId)
-            ->delete();
+            ->exists();
 
-        if (! $deleted) {
+        if (! $exists) {
             abort(404, 'Conversation not found.');
         }
 
         DB::table('agent_conversation_messages')
             ->where('conversation_id', $conversationId)
+            ->delete();
+
+        DB::table('agent_conversations')
+            ->where('id', $conversationId)
             ->delete();
 
         return response()->json(null, 204);
@@ -100,25 +108,38 @@ class ChatController extends Controller
     public function sendMessage(SendMessageRequest $request, string $conversationId): JsonResponse
     {
         $conversation = DB::table('agent_conversations')
+            ->select('id', 'user_id')
             ->where('id', $conversationId)
             ->first();
 
-            if (! $conversation) {
-                abort(404, 'Conversation not found.');
+        if (! $conversation) {
+            abort(404, 'Conversation not found.');
         }
-        
-        $agent = new ChatBot;
 
-        $response = $agent
-        ->continue($conversationId, as: (object) ['id' => $conversation->user_id])
-            ->prompt($request->validated('message'));
+        try {
+            $agent = new ChatBot;
+
+            $response = $agent
+                ->continue($conversationId, as: (object) ['id' => $conversation->user_id])
+                ->prompt($request->validated('message'));
+        } catch (\Throwable $e) {
+            $message = $e->getMessage();
+
+            if (str_contains($message, 'rate limit')) {
+                return response()->json(['message' => 'Rate limited. Please wait a moment and try again.'], 429);
+            }
+
+            return response()->json(['message' => 'AI provider error: '.$message], 503);
+        }
 
         $assistantMessage = DB::table('agent_conversation_messages')
+            ->select('id', 'conversation_id', 'role', 'content', 'usage', 'created_at')
             ->where('conversation_id', $conversationId)
             ->where('role', 'assistant')
             ->orderByDesc('created_at')
+            ->limit(1)
             ->first();
-            
+
         return response()->json([
             'data' => [
                 'conversation_id' => $conversationId,

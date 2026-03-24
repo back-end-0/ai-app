@@ -7,3 +7,4 @@ Route::get('/', function () {
 });
 
 Route::view('/chat', 'chat');
+Route::view('/products', 'products');

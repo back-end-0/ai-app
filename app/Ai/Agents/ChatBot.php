@@ -2,6 +2,7 @@
 
 namespace App\Ai\Agents;
 
+use App\Models\Product;
 use Laravel\Ai\Concerns\RemembersConversations;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\Conversational;
@@ -17,7 +18,15 @@ class ChatBot implements Agent, Conversational
      */
     public function instructions(): Stringable|string
     {
-        return 'You are a helpful AI assistant. Provide clear, accurate, and concise answers. '
-            .'If you are unsure about something, say so rather than guessing.';
+        $products = Product::query()
+            ->select('id', 'name', 'description', 'price', 'quantity')
+            ->get()
+            ->toJson();
+
+        return 'You are a helpful AI shopping assistant. You have access to the following product catalog: '
+            .$products
+            ."\n\nUse this data to answer questions about products including price, availability, and comparisons. "
+            .'If a product has no description (null), you can suggest a marketing description when asked. '
+            .'Always present product information in a clear and organized way.';
     }
 }

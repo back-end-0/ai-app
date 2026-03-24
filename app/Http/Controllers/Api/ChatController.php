@@ -103,14 +103,14 @@ class ChatController extends Controller
             ->where('id', $conversationId)
             ->first();
 
-        if (! $conversation) {
-            abort(404, 'Conversation not found.');
+            if (! $conversation) {
+                abort(404, 'Conversation not found.');
         }
-
+        
         $agent = new ChatBot;
 
         $response = $agent
-            ->continue($conversationId, as: (object) ['id' => $conversation->user_id])
+        ->continue($conversationId, as: (object) ['id' => $conversation->user_id])
             ->prompt($request->validated('message'));
 
         $assistantMessage = DB::table('agent_conversation_messages')
@@ -118,7 +118,7 @@ class ChatController extends Controller
             ->where('role', 'assistant')
             ->orderByDesc('created_at')
             ->first();
-
+            
         return response()->json([
             'data' => [
                 'conversation_id' => $conversationId,

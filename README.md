@@ -1,58 +1,278 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# AI App — Laravel AI-Powered E-Commerce Assistant
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Full-stack AI-powered e-commerce application built with **Laravel 13** and **Laravel AI SDK (v0)**. Features an intelligent chat assistant, semantic product search, AI-generated descriptions, and Arabic translation.
 
-## About Laravel
+## Tech Stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+| Layer     | Technology                                     |
+|-----------|-------------------------------------------------|
+| Backend   | PHP 8.3, Laravel 13, Laravel AI v0              |
+| Frontend  | Vanilla JS, Tailwind CSS v4, Vite 8, Axios      |
+| Database  | MySQL                                            |
+| Testing   | Pest v4, PHPUnit v12                             |
+| AI        | Groq / Gemini / Anthropic (configurable)         |
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Features
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### AI Chat Assistant
+- Multi-turn conversations stored in database
+- Product-aware: knows all products, prices, and stock levels
+- Rate limit and error handling
+- Suggestion chips for quick prompts
+- Copy-to-clipboard on message hover
 
-## Learning Laravel
+### Product Catalog
+- Paginated product grid (responsive 1/2/3 columns)
+- Dark/light theme toggle with 6 accent colors
+- English/Arabic language toggle with RTL support
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### AI-Powered Search
+- Semantic search via `ProductSearcher` agent
+- Understands English and Arabic queries
+- Handles semantic queries: "cheap", "out of stock", "audio products"
+- One AI call for IDs, one `whereIn` query for data
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### AI Description Generator
+- Generates marketing descriptions for products
+- Bulk "Generate All" for batch processing
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+### AI Product Translation (EN → AR)
+- Translates product name and description to Arabic
+- Structured output ensures reliable JSON responses
+- Bulk "Translate All" for batch processing
 
-## Agentic Development
+## Project Structure
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+```
+app/
+├── Ai/
+│   ├── Agents/
+│   │   ├── ChatBot.php              # Conversational shopping assistant
+│   │   ├── ProductSearcher.php      # Semantic search (structured output)
+│   │   ├── DescriptionGenerator.php # Marketing copy generator
+│   │   └── ProductTranslator.php    # EN→AR translation (structured output)
+│   └── Tools/
+│       ├── SearchProducts.php
+│       └── GenerateProductDescription.php
+├── Http/
+│   ├── Controllers/Api/
+│   │   ├── ChatController.php       # Conversations & messaging
+│   │   └── ProductController.php    # Products, search, generate, translate
+│   ├── Requests/
+│   │   ├── SendMessageRequest.php
+│   │   └── StoreConversationRequest.php
+│   └── Resources/
+│       ├── ConversationResource.php
+│       └── MessageResource.php
+├── Models/
+│   ├── User.php
+│   ├── Product.php                  # translations(), arabicTranslation()
+│   └── ProductTranslation.php
+database/
+├── migrations/
+├── factories/                       # UserFactory, ProductFactory
+└── seeders/                         # ProductSeeder (20 products)
+resources/
+├── js/
+│   ├── app.js                       # Entry point
+│   ├── bootstrap.js                 # Axios setup
+│   ├── chat.js                      # Chat UI logic
+│   └── products.js                  # Products UI logic
+└── views/
+    ├── chat.blade.php               # Chat interface
+    └── products.blade.php           # Product catalog
+tests/Feature/Api/
+├── ConversationTest.php             # 6 tests
+└── SendMessageTest.php              # 6 tests
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+## API Endpoints
 
-## Contributing
+### Conversations
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+| Method   | Endpoint                                  | Description              |
+|----------|-------------------------------------------|--------------------------|
+| `GET`    | `/api/conversations`                      | List conversations       |
+| `POST`   | `/api/conversations`                      | Create conversation      |
+| `GET`    | `/api/conversations/{id}`                 | Show with messages       |
+| `DELETE` | `/api/conversations/{id}`                 | Delete conversation      |
+| `POST`   | `/api/conversations/{id}/messages`        | Send message, get AI reply |
 
-## Code of Conduct
+### Products
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+| Method   | Endpoint                                  | Description              |
+|----------|-------------------------------------------|--------------------------|
+| `GET`    | `/api/products`                           | List (paginated, 9/page) |
+| `GET`    | `/api/products/search?q=...`              | AI semantic search       |
+| `POST`   | `/api/products/{id}/generate-description` | Generate AI description  |
+| `POST`   | `/api/products/{id}/translate`            | Translate to Arabic      |
 
-## Security Vulnerabilities
+### Web Routes
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+| Route       | View              |
+|-------------|-------------------|
+| `/`         | Welcome           |
+| `/chat`     | Chat interface     |
+| `/products` | Product catalog    |
 
-## License
+## AI Architecture
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### Agents
+
+| Agent                  | Interface            | Purpose                          |
+|------------------------|----------------------|----------------------------------|
+| `ChatBot`              | Conversational       | Shopping assistant with memory    |
+| `ProductSearcher`      | HasStructuredOutput  | Returns matching product IDs     |
+| `DescriptionGenerator` | Agent                | Returns marketing description    |
+| `ProductTranslator`    | HasStructuredOutput  | Returns `{name, description}` in Arabic |
+
+### How Search Works
+
+```
+User query ("سماعة" or "cheap headphones")
+    ↓
+ProductSearcher agent (has all products + Arabic names in context)
+    ↓
+Returns: { ids: [1, 14, 12] }
+    ↓
+Product::whereIn('id', $ids) → full product data with translations
+```
+
+One AI call + one DB query.
+
+## Database Schema
+
+### products
+
+| Column      | Type              | Notes           |
+|-------------|-------------------|-----------------|
+| id          | bigint (PK)       | Auto-increment  |
+| name        | string            |                 |
+| description | text (nullable)   |                 |
+| price       | decimal(10,2)     |                 |
+| quantity    | unsigned int      | Default: 0      |
+| image       | string (nullable) |                 |
+| timestamps  |                   |                 |
+
+### product_translations
+
+| Column      | Type              | Notes                        |
+|-------------|-------------------|------------------------------|
+| id          | bigint (PK)       | Auto-increment               |
+| product_id  | foreign key       | Cascades on delete           |
+| locale      | string(10)        | e.g. "ar"                    |
+| name        | string            | Translated name              |
+| description | text (nullable)   | Translated description       |
+| timestamps  |                   |                              |
+
+Unique index on `[product_id, locale]`.
+
+### agent_conversations
+
+| Column     | Type           | Notes                           |
+|------------|----------------|---------------------------------|
+| id         | UUID (PK)      |                                 |
+| user_id    | foreign (nullable) |                             |
+| title      | string         |                                 |
+| timestamps |                |                                 |
+
+### agent_conversation_messages
+
+| Column          | Type           | Notes                        |
+|-----------------|----------------|------------------------------|
+| id              | UUID (PK)      |                              |
+| conversation_id | string         | Indexed                      |
+| role            | string(25)     | user / assistant             |
+| content         | text           |                              |
+| usage           | JSON           | Token usage stats            |
+| timestamps      |                |                              |
+
+## Setup
+
+### Requirements
+
+- PHP 8.3+
+- MySQL
+- Node.js 18+
+- Composer
+
+### Installation
+
+```bash
+git clone <repo-url> ai-app
+cd ai-app
+composer install
+npm install
+cp .env.example .env
+php artisan key:generate
+```
+
+### Configuration
+
+Set your AI provider in `.env`:
+
+```env
+AI_PROVIDER=groq
+GROQ_API_KEY=your-key-here
+
+# Or:
+# AI_PROVIDER=gemini
+# GEMINI_API_KEY=your-key-here
+
+# AI_PROVIDER=anthropic
+# ANTHROPIC_API_KEY=your-key-here
+```
+
+Set your database:
+
+```env
+DB_CONNECTION=mysql
+DB_DATABASE=ai_app
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+### Database Setup
+
+```bash
+php artisan migrate
+php artisan db:seed --class=ProductSeeder
+```
+
+### Build & Run
+
+```bash
+npm run build
+php artisan serve
+```
+
+Or for development with hot reload:
+
+```bash
+composer run dev
+```
+
+### Running Tests
+
+```bash
+php artisan test --compact
+```
+
+16 tests, 48 assertions.
+
+### Code Formatting
+
+```bash
+vendor/bin/pint
+```
+
+## Frontend Theming
+
+### Theme Toggle
+Both chat and products pages support dark/light mode, persisted to `localStorage`.
+
+### Accent Colors (Chat)
+6 accent colors: Indigo, Violet, Rose, Emerald, Amber, Cyan. Changes message bubbles, avatars, send button, and all accent elements.
+
+### Language Toggle (Products)
+Switch between English and Arabic. Arabic mode enables RTL layout and shows translated content.

@@ -959,9 +959,6 @@ server {
         include fastcgi_params;
     }
 }
-AI_PROVIDER=groq
-GEMINI_API_KEY="your_gemini_key_here"
-GROQ_API_KEY="your_groq_key_here"
 ```
 
 ### Performance Notes
@@ -984,4 +981,7 @@ Always run before committing:
 
 ```bash
 vendor/bin/pint --dirty
+AI_PROVIDER=groq
+GEMINI_API_KEY="your_gemini_key_here"
+GROQ_API_KEY="your_groq_key_here"
 ```
